@@ -1,0 +1,242 @@
+---
+title: "Study1_data_analysis"
+author: "Tong"
+date: "11/10/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(afex)
+library(emmeans)
+```
+
+
+```{r read in data}
+df <- read.csv("study_1_df.csv")
+df_demo <- read.csv("df_data_demo2.csv")
+df_demo_before <- read.csv("df_data_demo.csv")
+```
+
+### Descriptive statistics about participants: what are participants like and what do they say?
+
+
+See below, the comments that participants gave:
+```{r }
+
+unique(df_demo$comments)
+```
+
+See below, the comments that all participants gave without any exclusions:
+```{r }
+
+unique(df_demo_before$comments)
+```
+
+
+See below, MEAN and SD age of the participants
+```{r }
+
+mean(df_demo$age %>% as.numeric())
+sd(df_demo$age %>% as.numeric())
+
+#ggplot(data_demo, aes(x=age)) + geom_bar()
+```
+
+See below the gender distribution of participants. 
+```{r }
+df_demo %>% group_by(gender) %>% count()
+```
+
+
+
+
+### Descriptive statistics, multinomial probability distribution.
+
+-  The average rate of providing a ranking with logical errors is around 0.39 (or, 0.3921846 to be more precise).
+-  The average rate of providing a ranking with logical errors under the "ranking middle events only" condition is around 0.52 (or 0.5188324 to be more precise).	
+-  The average rate of providing a ranking with logical errors under the "ranking edge events only" condition is around 0.27	 (or 0.2655367 to be more precise).
+
+/n
+
+- For the "ties allowed" condition:
+
+- The probability of giving ties is 0.1904762.
+/n
+- Under the condition "ranking middle events only", the conditional probability of proving type 1 logically incorrect ranking is 0.3865031, the conditional probability of providing type 2 logically incorrect ranking is 0.4570552, and the conditional probability of providing type 3 logically incorrect ranking is 0.1564417.
+- Under the condition "ranking edge events only", the conditional probability of proving type 1 logically incorrect ranking is 0.04216867, the conditional probability of providing type 2 logically incorrect ranking is 0.94578313, and the conditional probability of providing type 3 logically incorrect ranking is 0.01204819.
+
+/n What if we conditional on that the participant already provides a ranking with logical errors and the provided ranking does not belong to type 3 logically incorrect ranking.
+
+- Under the condition "ranking middle events only", the conditional probability of proving type 1 logically incorrect ranking is 0.4581818	and the conditional probability of providing type 2 logically incorrect ranking is 0.5418182.
+
+- Under the condition "ranking edge events only", the conditional probability of proving type 1 logically incorrect ranking is  0.07758621, the conditional probability of providing type 2 logically incorrect ranking is 0.92241379.
+
+
+/n
+
+- For the "ties not allowed" condition:
+- Under the condition "ranking middle events only", the conditional probability of proving type 1 logically incorrect ranking is 0.3815261, the conditional probability of providing type 2 logically incorrect ranking is 0.6184739.
+
+- Under the condition "ranking edge events only", the conditional probability of proving type 1 logically incorrect ranking is  0.04268293, the conditional probability of providing type 2 logically incorrect ranking is 0.9573171.
+
+
+
+```{r}
+head(df)
+str(df)
+
+mean(df$if_there_are_errors) 
+
+df %>%
+  filter(within_subject_condition == "indiff") %>%
+  summarise(mean_error = mean(if_there_are_errors))
+
+df %>%
+  filter(within_subject_condition == "extreme") %>%
+  summarise(mean_error = mean(if_there_are_errors))
+
+
+df_ties_allowed <- df %>% filter(between_subject_condition == "ties_allowed")
+
+## function to calculate conditional prob conditional on already being wrong
+con_prob_error_type <- function(df){
+  
+  no_of_rankings_with_a_logical_error <- df %>% 
+  select(ID, error_type) %>%
+  drop_na() %>% 
+  nrow() 
+  
+  
+  no_of_type1 <- df %>%
+  select(ID, error_type) %>%
+  drop_na() %>%
+  filter(error_type == "1") %>% 
+  nrow()
+  
+  no_of_type2 <- df %>% 
+  select(ID, error_type) %>%
+  drop_na() %>%
+  filter(error_type == "0") %>% 
+  nrow()
+
+  no_of_type3 <- df %>% 
+  select(ID, error_type) %>%
+  drop_na() %>%
+  filter(error_type == "2") %>% 
+  nrow()
+
+  con_prob_type1 <- no_of_type1/no_of_rankings_with_a_logical_error
+  con_prob_type2 <- no_of_type2/no_of_rankings_with_a_logical_error
+  con_prob_type3 <- no_of_type3/no_of_rankings_with_a_logical_error
+  
+  return(c(con_prob_type1,  con_prob_type2,  con_prob_type3))
+}
+  
+
+
+## apply the above two functions 
+con_prob_error_type(df_ties_allowed %>%
+  filter(within_subject_condition == "indiff") )
+
+con_prob_error_type( df_ties_allowed %>%
+  filter(within_subject_condition == "extreme") )
+
+df_ties_not_allowed <- df %>% filter(between_subject_condition == "ties_not_allowed")
+
+
+con_prob_error_type(df_ties_not_allowed %>%
+  filter(within_subject_condition == "indiff") )
+
+con_prob_error_type(df_ties_not_allowed %>%
+  filter(within_subject_condition == "extreme") )
+
+
+##  calculate the prob. of providing ties.
+mean(df_ties_allowed$if_there_are_ties)
+
+
+##  another way to calculate con prob for the condition where ties are allowed
+ 
+ df_ties_allowed %>% 
+  filter( within_subject_condition == "indiff" ) %>%
+   select(ID, error_type) %>%
+  drop_na() %>% 
+  filter(error_type != 2) %>%
+  summarise(con_type1 = mean(error_type),
+            con_type2 = 1-con_type1)
+
+
+  df_ties_allowed %>% 
+  filter( within_subject_condition == "extreme" ) %>%
+   select(ID, error_type) %>%
+  drop_na() %>% 
+  filter(error_type != 2) %>%
+  summarise(con_type1 = mean(error_type),
+            con_type2 = 1-con_type1)
+ 
+
+
+```
+
+
+### Analysis DV1: if there are logical errors or not.
+
+```{r echo=TRUE, warning=FALSE}
+
+
+a1 <- aov_ez("ID", "if_there_are_errors", df,  between = "between_subject_condition", within  = "within_subject_condition")
+a1
+emmeans(a1, c("within_subject_condition", "between_subject_condition"))
+
+
+# afex plot
+afex_plot(a1, "within_subject_condition", "between_subject_condition") + 
+  ylab(expression(paste("Probabilities of providing a ranking with logical errors"))) + 
+  xlab("within-subjects conditions") + 
+  theme(plot.margin = margin(l = 20)) +
+  scale_x_discrete(labels=c("indiff" = "ranking indifferent events", "extreme" = "ranking extreme events"))
+# people are more error-prone under condition A, where ties are allowed
+
+```
+
+### Analysis DV2: conditional probabilities of making type 1 errors giving that there are errors in the rankings.
+```{r}
+
+
+## Let not sure if we can integrate two between-subject conditions.
+ DV2_df <- df %>%
+   select(ID, between_subject_condition, within_subject_condition, error_type) %>%
+  drop_na() %>% 
+  filter(error_type != 2)
+
+
+a2 <- aov_ez("ID", "error_type", DV2_df, between = "between_subject_condition", within  = "within_subject_condition")
+a2
+
+emmeans(a2, c("within_subject_condition", "between_subject_condition"))
+
+
+# afex plot
+afex_plot(a2, "within_subject_condition", "between_subject_condition") + 
+  ylab(expression(paste("Conditional probabilities of giving type 1 logically incorrect rankings"))) + 
+  xlab("within-subjects conditions") + 
+  theme(plot.margin = margin(l = 20)) +
+  scale_x_discrete(labels=c("indiff" = "ranking indifferent events", "extreme" = "ranking extreme events"))
+
+# first we do it separately for two datasets, namely df_ties_allowed and namely df_ties_not_allowed
+
+# Let's start with df_ties_allowed
+
+```
+
+
+### Analysis DV3: the probabilities of giving ties. Can only analysis this DV with participants in the "ties_allowed" condition.
+```{r}
+
+```
+
