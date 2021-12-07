@@ -1,0 +1,116 @@
+---
+title: "MPT_model"
+author: "Tong"
+date: "12/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(afex)
+library(emmeans)
+library(TreeBUGS)
+```
+
+
+```{r}
+# prepare datasets
+
+df <- read.csv("study_1_df.csv")
+
+indiff_allow_indi <- df %>% 
+  filter(between_subject_condition == "ties_allowed", 
+         within_subject_condition == "indiff") %>%
+  pivot_wider(names_from = classify_all_ranks, values_from = f00) %>% 
+  group_by(ID) %>%
+  select(ID, between_subject_condition, within_subject_condition, 
+         logical, type_1, type_2, type_3) %>%
+  mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+         type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+         type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+         type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>% 
+  group_by(ID) %>%
+  summarise(between_subject_condition = "ties_allowed",
+            mid_logical = sum(logical),
+            mid_type1 = sum(type_1),
+            mid_type2 = sum(type_2),
+            mid_type3 = sum(type_3)) 
+
+edge_allow_indi <- df %>% 
+  filter(between_subject_condition == "ties_allowed", 
+         within_subject_condition == "extreme") %>%
+  pivot_wider(names_from = classify_all_ranks, values_from = f00) %>% 
+  group_by(ID) %>%
+  select(ID, between_subject_condition,  within_subject_condition, 
+         logical, type_1, type_2, type_3) %>%
+  mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+         type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+         type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+         type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>% 
+  group_by(ID) %>%
+  summarise(edge_logical = sum(logical),
+            edge_type1 = sum(type_1),
+            edge_type2 = sum(type_2), 
+            edge_type3 = sum(type_3)) 
+
+allow_indi <- cbind(indiff_allow_indi, edge_allow_indi %>% select(-ID))
+
+
+
+indiff_not_allow_indi <- df %>% filter(between_subject_condition == "ties_not_allowed", within_subject_condition == "indiff") %>%
+  pivot_wider(names_from = classify_all_ranks, values_from = f00) %>% 
+  group_by(ID) %>%
+  select(ID, between_subject_condition,  within_subject_condition, 
+         logical, type_1, type_2) %>%
+  mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+         type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+         type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>% 
+  group_by(ID) %>%
+  summarise(between_subject_condition = "ties_not_allowed",
+            mid_logical = sum(logical),
+            mid_type1 = sum(type_1),
+            mid_type2 = sum(type_2)) %>% unique()
+
+edge_not_allow_indi <- df %>% 
+  filter(between_subject_condition == "ties_not_allowed", 
+         within_subject_condition == "extreme") %>%
+  pivot_wider(names_from = classify_all_ranks, values_from = f00) %>% 
+  group_by(ID) %>%
+  select(ID, between_subject_condition,  within_subject_condition, 
+         logical, type_1, type_2) %>%
+  mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+         type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+         type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>% 
+  group_by(ID) %>%
+  summarise(edge_logical = sum(logical),
+            edge_type1 = sum(type_1),
+            edge_type2 = sum(type_2)) %>% unique()
+
+not_allow_indi <- cbind(indiff_not_allow_indi, edge_not_allow_indi %>% select(-ID))
+
+write.csv(allow_indi, "allow_indi.csv")
+write.csv(not_allow_indi, "not_allow_indi.csv")
+
+
+not_allow_indi$mid_type3 <- 0
+not_allow_indi$edge_type3 <- 0
+
+not_allow_indi <- not_allow_indi %>%
+  select(ID, between_subject_condition, mid_logical, mid_type1, mid_type2, mid_type3,
+         edge_logical, edge_type1, edge_type2, edge_type3)
+
+study1_indi <- rbind(allow_indi, not_allow_indi)
+
+
+```
+
+In the most simple scenario, the following steps are required:
+
+1. Define path to existing MPT model file in .eqn format (cf. multiTree; Moshagen, 2010)
+2. Define path to data set with individual frequencies (.csv file: comma separated, rows=persons, columns=labeled categories)
+3. Call one of the fitting functions `betaMPT` or `traitMPT` (examples below)
+4. Check convergence of MCMC chains
+5. Summarize and plot results
+
