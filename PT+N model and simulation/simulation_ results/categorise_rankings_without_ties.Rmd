@@ -1,0 +1,220 @@
+---
+title: "categorise_rankings_without_ties"
+author: "Tong"
+date: "11/18/2021"
+output: html_document
+---
+
+
+```{r}
+load("edge_events_0_d.RData")
+```
+
+
+
+```{r}
+
+results_size <- function (results) {
+  
+  results <- results %>% 
+  mutate(r1 = r1 + h4*0.5 + 
+    h13*0.5 + h27*0.5 + s3*(1/6) + s5*(1/6) + t3*(1/4) + e1*(1/24),
+    
+    r2 = r2 + h3*0.5 + 
+    h15*0.5 + h27*0.5 + s1*(1/6) + s5*(1/6) + t3*(1/4) + e1*(1/24), 
+  
+  r3 = r3 + h6*0.5 + 
+    h13*0.5 + h29*0.5 + s3*(1/6) + s5*(1/6) + t4*(1/4) + e1*(1/24),
+  
+  r4 = r4 + h5*0.5 + 
+    h17*0.5 + h29*0.5 + s2*(1/6) + s5*(1/6) + t4*(1/4) + e1*(1/24),
+  
+  r5 = r5 + h1*0.5 + 
+    h15*0.5 + h25*0.5 + s1*(1/6) + s5*(1/6) + t1*(1/4) + e1*(1/24),
+  
+  r6 = r6 + h2*0.5 + 
+    h17*0.5 + h25*0.5 + s2*(1/6) + s5*(1/6) + t1*(1/4) + e1*(1/24),
+  
+  r7 = r7 + h4*0.5 + 
+    h22*0.5 + h28*0.5 + s3*(1/6) + s7*(1/6) + t3*(1/4) + e1*(1/24),
+  
+  r8 = r8 + h3*0.5 + 
+    h23*0.5 + h28*0.5 + s1*(1/6) + s7*(1/6) + t3*(1/4) + e1*(1/24),
+  
+  r9 = r9 + h11*0.5 + 
+    h22*0.5 + h35*0.5 + s3*(1/6) + s7*(1/6) + t2*(1/4) + e1*(1/24),
+  
+  r10 = r10 + h12*0.5 + 
+    h18*0.5 + h35*0.5 + s4*(1/6) + s7*(1/6) + t2*(1/4) + e1*(1/24),
+  
+  r11 = r11 + h7*0.5 + 
+    h23*0.5 + h32*0.5 + s1*(1/6) + s7*(1/6) + t5*(1/4) + e1*(1/24),
+  
+  r12 = r12 + h8*0.5 + 
+    h18*0.5 + h32*0.5 + s4*(1/6) + s7*(1/6) + t5*(1/4) + e1*(1/24),
+  
+  r13 = r13 + h6*0.5 + 
+    h20*0.5 + h30*0.5 + s3*(1/6) + s8*(1/6) + t4*(1/4) + e1*(1/24),
+  
+  r14 = r14 + h5*0.5 + 
+    h24*0.5 + h30*0.5 + s2*(1/6) + s8*(1/6) + t4*(1/4) + e1*(1/24),
+  
+  r15 = r15 + h11*0.5 +
+    h20*0.5 + h36*0.5 + s3*(1/6) + s8*(1/6) + t2*(1/4) + e1*(1/24), 
+  
+  r16 = r16 + h12*0.5 + 
+    h16*0.5 + h36*0.5 + s4*(1/6) + s8*(1/6) + t2*(1/4) + e1*(1/24), 
+  
+  r17 = r17 + h9*0.5 + 
+    h24*0.5 + h34*0.5 + s2*(1/6) + s8*(1/6) + t6*(1/4) + e1*(1/24),
+  
+  r18 = r18 + h10*0.5 + 
+    h16*0.5 + h34*0.5 + s4*(1/6) + s8*(1/6) + t6*(1/4) + e1*(1/24),
+  
+  r19 = r19 + h1*0.5 +
+    h19*0.5 + h26*0.5 + s1*(1/6) + s6*(1/6) + t1*(1/4) + e1*(1/24),
+  
+  r20 = r20 + h2*0.5 + 
+    h21*0.5 + h26*0.5 + s2*(1/6) + s6*(1/6) + t1*(1/4) + e1*(1/24),
+  
+  r21 = r21 + h7*0.5 + 
+    h19*0.5 + h31*0.5 + s1*(1/6) + s6*(1/6) + t5*(1/4) + e1*(1/24),
+  
+  r22 = r22 + h8*0.5 + 
+    h14*0.5 + h31*0.5 + s4*(1/6) + s6*(1/6) + t5*(1/4) + e1*(1/24),
+  
+  r23 = r23 + h9*0.5 + 
+    h21*0.5 + h33*0.5 + s2*(1/6) + s6*(1/6) + t6*(1/4) + e1*(1/24),
+  
+  r24 = r24 + h10*0.5 + 
+    h14*0.5 + h33*0.5 + s4*(1/6) + s6*(1/6) + t6*(1/4) + e1*(1/24)) %>%
+    
+  select(r1:r24) %>%
+    
+  mutate(check = r1+r2+r3+r4+r5+r6+r7+r8+r9+r10+r11+r12 +r13+r14+r15+r16+r17+r18+r19+r20+r21+r22+r23+r24,
+         type1 = r19 + r20 + r15 + r16 + r9 + r10 + r5 + r6,
+         type2 = r2 + r4 + r7 + r12 + r13 + r18 + r21+ r23,
+         correct = r1 + r3 + r8 + r11 + r14 + r17 + r22 + r24)
+  
+  return(results)
+
+}
+
+```
+
+
+```{r}
+results_size_one <- results_size(t(events_results[[1]]) %>% as.data.frame()) %>%
+  summarise(mean_correct = mean(correct),
+            mean_type1 = mean(type1),
+            mean_type2 = mean(type2))
+
+results_size_two <- results_size( t(events_results[[2]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_three <- results_size(t(events_results[[3]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_four <-  results_size(t(events_results[[4]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_five <-  results_size(t(events_results[[5]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_six <-  results_size(t(events_results[[6]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+
+  
+results_size_seven <-  results_size(t(events_results[[7]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_eight <-  results_size(t(events_results[[8]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                      
+results_size_nine <-  results_size(t(events_results[[9]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                     
+results_size_ten <-  results_size(t(events_results[[10]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                    
+results_size_eleven <- results_size(t(events_results[[11]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_twelve <-  results_size(t(events_results[[12]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                      
+results_size_thirteen <-  results_size(t(events_results[[13]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                      
+  
+results_size_fourteen <-  results_size(t(events_results[[14]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                      
+  
+results_size_fifteen <-  results_size(t(events_results[[15]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_sixteen <-  results_size(t(events_results[[16]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_seventeen <-  results_size(t(events_results[[17]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_eighteen <-  results_size(t(events_results[[18]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+                                      
+results_size_nineteen <-  results_size(t(events_results[[19]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+  
+results_size_twenty <-  results_size(t(events_results[[20]]) %>% as.data.frame()) %>%
+                                      summarise(mean_correct = mean(correct),
+                                                mean_type1 = mean(type1),
+                                                mean_type2 = mean(type2))
+
+dat <- rbind(results_size_one, results_size_two, results_size_three, results_size_four, results_size_five,
+        results_size_six, results_size_seven, results_size_eight, results_size_nine, results_size_ten,
+        results_size_eleven, results_size_twelve, results_size_thirteen, results_size_fourteen,
+        results_size_fifteen,
+        results_size_sixteen, results_size_seventeen, results_size_eighteen, results_size_nineteen,
+        results_size_twenty)
+
+dat <- cbind (sample_size = 1:20, dat)
+
+```
+
