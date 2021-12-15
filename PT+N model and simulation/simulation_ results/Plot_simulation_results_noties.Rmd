@@ -1,0 +1,206 @@
+---
+title: "Plot_simulation_results_noties"
+author: "Tong"
+date: "11/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(viridis)
+library(ggpubr)
+library(cowplot)
+library(ggplot2)
+library(rlang)
+library(latex2exp)
+library(viridis)
+library(scales)
+theme_set(theme_bw())
+options(ggplot2.continuous.colour="viridis")
+options(ggplot2.continuous.fill = "viridis")
+
+```
+
+```{r}
+two_edge_events <- read.csv("linear_edge_0_d.csv") %>%
+  mutate(event_types = "Edge events") %>% 
+  mutate(noise_term = "d = 0") 
+
+two_edge_events_with_d <- read.csv("linear_edge_0.3_d.csv") %>%
+  mutate(event_types = "Edge events") %>% 
+  mutate(noise_term = "d = 0.3") 
+
+two_indiff_events <- read.csv("linear_middle_0_d.csv") %>%
+  mutate(event_types = "Middle events") %>% 
+  mutate(noise_term = "d = 0") 
+
+two_indiff_events_with_d <- read.csv("linear_middle_0.3_d.csv") %>%
+  mutate(event_types = "Middle events") %>% 
+  mutate(noise_term = "d = 0.3") 
+
+
+```
+
+
+############ Multinational distribution of all rankings 
+```{r}
+round(mean(two_edge_events$mean_correct),2)
+round(mean(two_edge_events$mean_type1),2)
+round(mean(two_edge_events$mean_type2),2)
+
+round(mean(two_edge_events_with_d$mean_correct),2)
+round(mean(two_edge_events_with_d$mean_type1),2)
+round(mean(two_edge_events_with_d$mean_type2),2)
+
+round(mean(two_indiff_events$mean_correct),2)
+round(mean(two_indiff_events$mean_type1),2)
+round(mean(two_indiff_events$mean_type2),2)
+
+round(mean(two_indiff_events_with_d$mean_correct),2)
+round(mean(two_indiff_events_with_d$mean_type1),2)
+round(mean(two_indiff_events_with_d$mean_type2),2)
+```
+
+
+
+
+############ look at all categories
+
+```{r}
+
+# df1 <- rbind(two_edge_events, two_edge_events_with_d, two_indiff_events, two_indiff_events_with_d) %>%
+#   pivot_longer(mean_correct: mean_type2, names_to = "group",
+#                values_to = "value")
+# 
+# p <- ggplot(df1, aes(x=sample_size, y=value, fill=group)) +
+#     geom_area(alpha=0.5 , size=.5, colour="black") +
+#   xlab("Sample size") +
+#   ylab(expression(paste("Probability"))) +
+# scale_fill_discrete(name = "Type of rankings", labels=c("Logically correct", "Type 1", "Type 2")) +
+#   scale_x_continuous(breaks = seq(0, 20, 5)) +
+#   theme(axis.text=element_text(size=10),
+#         axis.title=element_text(size=10),
+#         axis.title.y  = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0)),
+#         axis.title.x =  element_text(margin = margin(t = 5, r = 0, b = 0, l = 0)),
+#         strip.text = element_text(size = 10),
+#         plot.margin = margin(t = 0, r = 40, b = 100, l = 20),
+#         legend.position = "none") + xlim(0,1)
+# 
+# (p2 <- p + facet_grid(cols = vars(noise_term), rows = vars(event_types)))
+
+#ggsave("noties_all_categories.jpg")
+```
+
+
+```{r}
+# 
+# p_all <- plot_grid(p1,p2,ncol=2,nrow = 1, labels = c("A", "B"))
+# 
+# 
+# 
+# legend_a <- get_legend(
+# 
+#      p1 + guides(color = guide_legend(nrow = 2),
+#                  linetype = guide_legend(nrow = 2)) + theme(legend.position = "bottom")
+#    )
+# 
+# 
+# 
+# 
+# plot_grid(p_all, legend_a, ncol=1,nrow = 2, rel_heights = c(3, 0.3))
+#   
+#   
+# ggsave("b_all.jpg")
+
+```
+
+
+
+
+
+
+############ look at logically correct rankings
+
+```{r}
+df2 <- rbind(two_edge_events, two_edge_events_with_d, two_indiff_events, two_indiff_events_with_d)
+
+p2 <- ggplot(df2, aes(sample_size, mean_correct)) +
+  geom_line(aes(color = event_types, linetype = noise_term), size=1)  + 
+  xlab("Sample size") +
+  ylab(expression(paste("Pr(logical)"))) +
+  scale_x_continuous(breaks = seq(0, 20, 2)) +
+  labs(color = "Event types") +
+  labs(linetype="Noise in sampling process") +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        axis.title.y  = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0)),
+        axis.title.x =  element_text(margin = margin(t = 5, r = 0, b = 0, l = 0)),
+        plot.margin = margin(t = 10, r = 20, b = 140, l = 20),
+        legend.position = "none") + xlim(0,1)
+
+p2
+
+#ggsave("noties_p_correct.jpg")
+
+```
+
+
+
+```{r}
+
+p_all <- plot_grid(p1,p2,ncol=2,nrow = 1, labels = c("A", "B"))
+
+
+
+legend_a <- get_legend(
+
+     p1 + guides(color = guide_legend(nrow = 2),
+                 linetype = guide_legend(nrow = 2)) + theme(legend.position = "bottom")
+   )
+
+
+plot_grid(p_all, legend_a, ncol=1,nrow = 2, rel_heights = c(1, 0.3))
+```
+
+
+```{r}
+ggsave("p_correct.png")
+```
+
+
+
+
+############ look at type 1 rankings
+
+```{r}
+
+df3 <- rbind(two_edge_events, two_edge_events_with_d, two_indiff_events, two_indiff_events_with_d) %>%
+  mutate(con_prob_type1 = mean_type1 / (1-mean_correct),
+         con_prob_type2 = mean_type2 / (1-mean_correct),
+         con_all = con_prob_type1 + con_prob_type2 ) 
+
+p2 <- ggplot(df3, aes(sample_size, con_prob_type1)) +
+  geom_line(aes(color = event_types, linetype = noise_term), size=1) +
+  xlab("Sample size") +
+  ylab(expression(paste("Pr(Type 1 | illogical, not Type 3)"))) + 
+  scale_x_continuous(breaks = seq(0, 20, 2)) + 
+  labs(color = "Event types") +
+  labs(linetype="Noise in sampling process") + 
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        axis.title.y  = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0)),
+        axis.title.x =  element_text(margin = margin(t = 5, r = 0, b = 0, l = 0)),
+        plot.margin = margin(t = 20, r = 20, b = 140, l = 20),
+        legend.position = "none")
+
+
+# ggsave("noties_p_type1.jpg")
+
+```
+
+
+
+
+
+
