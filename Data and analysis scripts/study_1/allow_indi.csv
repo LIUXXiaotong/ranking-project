@@ -1,4 +1,4 @@
-"ID","between_subject_condition","mid_logical","mid_type1","mid_type2","mid_type3","edge_logical","edge_type1","edge_type2","edge_type3"
+"ID","condition","ML","M1","M2","M3","EL","E1","E2","E3"
 2918,"ties_allowed",5,0,1,0,5,0,1,0
 2920,"ties_allowed",2,2,2,0,3,0,3,0
 2923,"ties_allowed",5,1,0,0,5,0,1,0
