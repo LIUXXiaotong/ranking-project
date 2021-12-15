@@ -1,6 +1,6 @@
 
-library(tidyverse)
 library (plyr)
+library(tidyverse)
 library(ggplot2)
 library(gtools)
 library(latex2exp)
@@ -46,7 +46,6 @@ pr_linear <- function(N, A, B, C, D){
   return(output)
 }
 
-
 #########################
 pr_one_pair_case_1 <- function(N, A, B, C, D){
   
@@ -83,7 +82,6 @@ pr_one_pair_case_1 <- function(N, A, B, C, D){
   return(output)
 }
 
-
 #######################
 pr_one_pair_case_2 <- function(N, A, B, C, D){
   
@@ -118,8 +116,6 @@ pr_one_pair_case_2 <- function(N, A, B, C, D){
   
   return(output)
 }
-
-
 
 ###########################
 pr_one_pair_case_3 <- function(N, A, B, C, D){
@@ -156,8 +152,6 @@ pr_one_pair_case_3 <- function(N, A, B, C, D){
   return(output)
 }
 
-
-
 ###########################
 pr_three_tied_case1 <- function(N, A, B, C, D){
   
@@ -192,8 +186,6 @@ pr_three_tied_case1 <- function(N, A, B, C, D){
   return(output)
 }
 
-
-
 ##########################
 pr_two_pairs<- function(N, A, B, C, D){
   
@@ -226,8 +218,6 @@ pr_two_pairs<- function(N, A, B, C, D){
   
   return(output)
 }
-
-
 
 ##########################
 pr_three_tied_case2 <- function(N, A, B, C, D){
@@ -263,9 +253,6 @@ pr_three_tied_case2 <- function(N, A, B, C, D){
   return(output)
 }
 
-
-
-
 #########################
 pr_all_equal <- function(N, A, B, C, D){
   i <- 0:N
@@ -295,6 +282,3 @@ pr_all_equal <- function(N, A, B, C, D){
   
   return(output)
 }
-
-
-
