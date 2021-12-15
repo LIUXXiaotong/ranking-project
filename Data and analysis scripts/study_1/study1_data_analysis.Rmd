@@ -45,6 +45,8 @@ See below, MEAN and SD age of the participants
 mean(df_demo$age %>% as.numeric())
 sd(df_demo$age %>% as.numeric())
 
+range(df_demo$age)
+
 #ggplot(data_demo, aes(x=age)) + geom_bar()
 ```
 
@@ -53,6 +55,12 @@ See below the gender distribution of participants.
 df_demo %>% group_by(gender) %>% count()
 ```
 
+```{r}
+df %>% group_by(between_subject_condition) %>% count()
+
+1092/12
+1032/12
+```
 
 
 
@@ -236,6 +244,15 @@ afex_plot(a1, "within_subject_condition", "between_subject_condition") +
 ggsave("p1.jpg")
 ```
 
+
+
+
+
+
+
+
+
+
 ### Analysis DV2: conditional probabilities of making type 1 errors giving that there are errors in the rankings.
 ```{r}
 
@@ -267,6 +284,13 @@ afex_plot(a2, "within_subject_condition", "between_subject_condition") +
 ggsave("conditional probability.jpg")
 
 ```
+
+
+
+
+
+
+
 
 
 ### Analysis DV3: the probabilities of giving type 1 errors
