@@ -99,29 +99,6 @@ library(tidybayes)
 ```
 
 
-#### Prepare for Multitree
-```{r}
-allow_indi <- read.csv("allow_indi.csv") 
-
-count_f <- allow_indi %>%
-  summarise(e1 = sum(mid_logical),
-            e2 = sum(mid_type1),
-            e3 = sum(mid_type2),
-            e4 = sum(mid_type3),
-            f1 = sum(edge_logical),
-            f2 = sum(edge_type1),
-            f3 = sum(edge_type2),
-            f4 = sum(edge_type3))
-
-count_f
-
-
-250+123+149+24
-380+5+157+4
-
-
-```
-
 ## step 2, run MPT models
 
 In the most simple scenario, the following steps are required:
@@ -167,9 +144,9 @@ fit_betaMPT <- betaMPT(
       transformedParameters =list("deltal=lm-le", "deltat3 =t3m-t3e", "deltat1 = t1m-t1e"), 
       parEstFile = "results_fit_betaMPT.txt",
       ### optional MCMC input:            
-      n.iter = 50000,             # number of iterations
-      n.burnin = 10000,            # number of burnin samples that are removed
-      n.thin = 10,                 # thinning rate of removing samples
+      n.iter = 100000,             # number of iterations
+      n.burnin = 50000,            # number of burnin samples that are removed
+      n.thin = 100,                 # thinning rate of removing samples
       n.chains = 4                # number of MCMC chains (run in parallel)
 )
 ```
@@ -189,10 +166,7 @@ plot(fit_betaMPT,  parameter = "mean", type = "acf")
 plot(fit_betaMPT,  parameter = "mean", type = "gelman")
 
 
-```
 
-
-```{r}
 ppps = PPP(fit_betaMPT)
 ppps  # ideally PPP should be around .50
 ```
@@ -216,21 +190,48 @@ plotFreq(fit_betaMPT) # individual and mean raw frequencies per tree
 ```
 
 
-## group-level parameter estimates
 ```{r}
-# save complete summary of individual estimates to file:
-getParam(fit_betaMPT, parameter = "theta", 
-         stat = "summary", file = "parameter.csv") 
+mysample_betaMPT <- getSamples(fit_betaMPT, "mean")
+tt_betaMPT <- tidy_draws(mysample_betaMPT)
 
-read.csv("parameter.csv")
+  
+p1 <- tt_betaMPT %>% 
+  pivot_longer(`mean[1]_le`: `mean[2]_lm`,
+               names_to = "name_l",
+               values_to = "value_l")  %>% 
+  select(name_l, value_l, .chain, .iteration, .draw) %>% 
+  mutate(name_l = ifelse(str_detect(name_l, "le"), "edge events", "middle events")) %>%
+  ggplot(aes(x = value_l, y = name_l)) +
+  stat_halfeye() + theme_set(theme_bw()) + xlab("group-level estimates of parameter l") + ylab("event type")
 
-plotParam(fit_betaMPT,     # estimated parameters
-          includeIndividual=TRUE  
-)
+p1
 
-plotDistribution(fit_betaMPT)      # estimated hierarchical parameter distribution
+ggsave("non_linear_l_beta.png")
 
 
+p2 <- tt_betaMPT %>% 
+  pivot_longer(`mean[3]_t1e`: `mean[4]_t1m`,
+               names_to = "name_t1",
+               values_to = "value_t1")  %>% 
+  select(name_t1, value_t1, .chain, .iteration, .draw) %>% 
+  mutate(name_t1 = ifelse(str_detect(name_t1, "t1e"), "edge events", "middle events")) %>%
+  ggplot(aes(x = value_t1, y = name_t1)) +
+  stat_halfeye() + theme_set(theme_bw()) + xlab("group-level estimates of parameter t1") + ylab("event type")
+p2
+
+ggsave("non_linear_t1_beta.png")
+
+p3 <- tt_betaMPT %>% 
+  pivot_longer(`mean[5]_t3e`: `mean[6]_t3m`,
+               names_to = "name_t3",
+               values_to = "value_t3")  %>% 
+  select(name_t3, value_t3, .chain, .iteration, .draw) %>% 
+  mutate(name_t3 = ifelse(str_detect(name_t3, "t3e"), "edge events", "middle events")) %>%
+  ggplot(aes(x = value_t3, y = name_t3)) +
+  stat_halfeye() + theme_set(theme_bw()) + xlab("group-level estimates of parameter t3") + ylab("event type")
+p3
+
+ggsave("non_linear_t3_beta.png")
 
 ```
 
@@ -246,11 +247,73 @@ fit_traitMPT <- traitMPT(eqnfile="cat_rank.eqn",
                          modelfilename = "traitMPT.jags", 
                          transformedParameters =list("deltal=lm-le", "deltat3 =t3m-t3e", "deltat1 = t1m-t1e"), 
                          parEstFile = "results_fit_traitMPT.txt",
-                         n.chain = 4, n.iter = 50000,
-                         n.burnin = 10000, n.thin = 10)
+                         n.iter = 100000,             # number of iterations
+                         n.burnin = 50000,            # number of burnin samples that are removed
+                         n.thin = 100,                 # thinning rate of removing samples
+                         n.chains = 4 )
+
+
 ```
+
 ```{r}
-summary(fit_traitMPT)
-summary(fit_betaMPT)
+plot(fit_traitMPT,    # fitted model
+     parameter ="mean"      # which parameter to plot
+)
+# further arguments are passed to ?plot.mcmc.list
+# Auto-correlation plots:
+plot(fit_traitMPT,  parameter = "mean", type = "acf")
+# Gelman-Rubin plots:
+plot(fit_traitMPT,  parameter = "mean", type = "gelman")
+
+
+
+ppps = PPP(fit_traitMPT)
+ppps
 ```
+
+```{r}
+mysample_traitMPT <- getSamples(fit_traitMPT, "mean")
+tt_traitMPT <- tidy_draws(mysample_traitMPT)
+
+  
+p1 <- tt_traitMPT %>% 
+  pivot_longer(`mean[1]_le`: `mean[2]_lm`,
+               names_to = "name_l",
+               values_to = "value_l")  %>% 
+  select(name_l, value_l, .chain, .iteration, .draw) %>% 
+  mutate(name_l = ifelse(str_detect(name_l, "le"), "edge events", "middle events")) %>%
+  ggplot(aes(x = value_l, y = name_l)) +
+  stat_halfeye() + theme_set(theme_bw()) + xlab("group-level estimates of parameter l") + ylab("event type")
+
+p1
+
+ggsave("non_linear_l_trait.png")
+
+
+p2 <- tt_traitMPT %>% 
+  pivot_longer(`mean[3]_t1e`: `mean[4]_t1m`,
+               names_to = "name_t1",
+               values_to = "value_t1")  %>% 
+  select(name_t1, value_t1, .chain, .iteration, .draw) %>% 
+  mutate(name_t1 = ifelse(str_detect(name_t1, "t1e"), "edge events", "middle events")) %>%
+  ggplot(aes(x = value_t1, y = name_t1)) +
+  stat_halfeye() + theme_set(theme_bw()) + xlab("group-level estimates of parameter t1") + ylab("event type")
+p2
+
+ggsave("non_linear_t1_trait.png")
+
+p3 <- tt_traitMPT %>% 
+  pivot_longer(`mean[5]_t3e`: `mean[6]_t3m`,
+               names_to = "name_t3",
+               values_to = "value_t3")  %>% 
+  select(name_t3, value_t3, .chain, .iteration, .draw) %>% 
+  mutate(name_t3 = ifelse(str_detect(name_t3, "t3e"), "edge events", "middle events")) %>%
+  ggplot(aes(x = value_t3, y = name_t3)) +
+  stat_halfeye() + theme_set(theme_bw()) + xlab("group-level estimates of parameter t3") + ylab("event type")
+p3
+
+ggsave("non_linear_t3_trait.png")
+
+```
+
 
