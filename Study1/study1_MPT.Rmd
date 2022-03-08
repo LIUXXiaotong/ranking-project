@@ -1,0 +1,262 @@
+---
+title: "Progress tracing: Testing sampling based models of probability estimations"
+shorttitle: "Progress tracing"
+author: "Xiaotong Liu"
+date: "`r Sys.setlocale('LC_TIME', 'C'); format(Sys.time(), '%d\\\\. %B %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 4
+---
+
+```{r}
+
+library(tidyverse)
+library(afex)
+library(emmeans)
+library(runjags)
+library(TreeBUGS)
+library(tidybayes)
+library(ggpubr)
+library(latex2exp)
+
+```
+
+
+
+# 1. Simulation 
+## 1.1 Code
+
+For the complete code, please see the file "".
+
+## 1.2 Results
+
+# 2. Experiment 1
+
+## 2.1 Demographic information
+## 2.2 Descriptive statistics 
+## 2.3 MPT analysis
+### 2.3.1 Prepare data sets.
+
+We prepared two date sets, one for the group of participants that were allowed to give ties in the rankings, and one for the group of participants that were not allowed to give ties in the rankings.
+
+To use MPT models to analyse data, we need to prepare data with individual frequencies. In the data table, each row is one person and each column is one category. Each cell is the frequency of giving one category of responses by one person.
+
+
+```{r}
+
+ df <- read.csv("study_1_df.csv")
+ # 
+ # indiff_allow_indi <- df %>%
+ #   filter(between_subject_condition == "ties_allowed",
+ #          within_subject_condition == "indiff") %>%
+ #   pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+ #   group_by(ID) %>%
+ #   select(ID, between_subject_condition, within_subject_condition,
+ #          logical, type_1, type_2, type_3) %>%
+ #   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+ #          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+ #          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+ #          type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>%
+ #   group_by(ID) %>%
+ #   summarise(condition = "ties_allowed",
+ #             ML = sum(logical),
+ #             M1 = sum(type_1),
+ #             M2 = sum(type_2),
+ #             M3 = sum(type_3))
+
+ # edge_allow_indi <- df %>%
+ #   filter(between_subject_condition == "ties_allowed",
+ #          within_subject_condition == "extreme") %>%
+ #   pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+ #   group_by(ID) %>%
+ #   select(ID, between_subject_condition,  within_subject_condition,
+ #          logical, type_1, type_2, type_3) %>%
+ #   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+ #          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+ #          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+ #          type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>%
+ #   group_by(ID) %>%
+ #   summarise(EL = sum(logical),
+ #             E1 = sum(type_1),
+ #             E2 = sum(type_2),
+ #             E3 = sum(type_3))
+ # 
+ # allow_indi <- cbind(indiff_allow_indi, edge_allow_indi %>% select(-ID))
+
+
+
+ # indiff_not_allow_indi <- df %>% filter(between_subject_condition == "ties_not_allowed", within_subject_condition == "indiff") %>%
+ #   pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+ #   group_by(ID) %>%
+ #   select(ID, between_subject_condition,  within_subject_condition,
+ #          logical, type_1, type_2) %>%
+ #   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+ #          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+ #         type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>%
+ #   group_by(ID) %>%
+ #   summarise(condition = "ties_not_allowed",
+ #             ML = sum(logical),
+ #             M1 = sum(type_1),
+ #             M2 = sum(type_2)) %>% unique()
+ # 
+ # edge_not_allow_indi <- df %>%
+ #   filter(between_subject_condition == "ties_not_allowed",
+ #          within_subject_condition == "extreme") %>%
+ #   pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+ #   group_by(ID) %>%
+ #   select(ID, between_subject_condition,  within_subject_condition,
+ #          logical, type_1, type_2) %>%
+ #   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+ #          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+ #          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>%
+ #   group_by(ID) %>%
+ #   summarise(EL = sum(logical),
+ #             E1 = sum(type_1),
+ #             E2 = sum(type_2)) %>% unique()
+ # 
+ # not_allow_indi <- cbind(indiff_not_allow_indi, edge_not_allow_indi %>% select(-ID))
+ # 
+ # write.csv(allow_indi, "allow_indi.csv", row.names = FALSE)
+ # write.csv(not_allow_indi, "not_allow_indi.csv", row.names = FALSE)
+ # 
+ # head(allow_indi)
+ # head(not_allow_indi)
+
+
+```
+
+### 2.3.2 when ties are allowed
+
+```{r}
+# allow_traitMPT <- traitMPT(eqnfile="allow_rank.eqn",
+#          data="allow_indi.csv",
+#          transformedParameters =list("deltal=lm-le", "deltat3 =t3m-t3e", "deltat1 = t1m-t1e"),
+#          parEstFile = "results_allow_traitMPT.txt",
+#          n.iter = 200000,             # number of iterations
+#          n.burnin = 50000,            # number of burnin samples that are removed
+#          n.thin = 100,                 # thinning rate of removing samples
+#          n.chains = 4)
+# 
+# save(allow_traitMPT, file = "allow_traitMPT.rda")
+
+# not_allow_traitMPT <- traitMPT(eqnfile="not_allow_rank.eqn",
+#                                data = "not_allow_indi.csv",
+#                                transformedParameters =list("deltal=lm-le", "deltat1 = t1m-t1e"),
+#                                parEstFile = "results_not_allow_traitMPT.txt",
+#                                n.iter = 200000,
+#                                n.burnin = 50000,
+#                                n.thin = 100, 
+#                                n.chains = 4)
+# 
+# save(not_allow_traitMPT, file = "not_allow_traitMPT.rda")
+```
+
+
+```{r}
+
+## prepare the figure 
+load("allow_traitMPT.rda")
+load("not_allow_traitMPT.rda")
+
+
+sample_allow_traitMPT <- getSamples(allow_traitMPT, "mean")
+sample_not_allow_traitMPT <- getSamples(not_allow_traitMPT, "mean")
+
+############# run the test 
+tidy_sample_allow_traitMPT <- tidy_draws(sample_allow_traitMPT) %>%
+  mutate(delta_l = `mean[1]_le` - `mean[2]_lm`,
+         delta_t1 = `mean[4]_t1m` - `mean[3]_t1e`,
+         delta_t3 = `mean[6]_t3m` - `mean[5]_t3e`,
+         bw = "Ties allowed",
+         delta_l_test_prep = ifelse(delta_l > 0, 1, 0),
+         delta_t1_test_prep = ifelse(delta_t1 > 0, 1, 0),
+         delta_t3_test_prep = ifelse(delta_t3 > 0, 1, 0))
+
+tidy_sample_not_allow_traitMPT  <- tidy_draws(sample_not_allow_traitMPT) %>%
+  mutate(delta_l = `mean[1]_le` - `mean[2]_lm`,
+         delta_t1 = `mean[4]_t1m` - `mean[3]_t1e`,
+         bw = "Ties not allowed",
+         delta_l_test_prep = ifelse(delta_l > 0, 1, 0),
+         delta_t1_test_prep = ifelse(delta_t1 > 0, 1, 0)) 
+
+allow_delta_l_test <- sum(tidy_sample_allow_traitMPT$delta_l_test_prep) / nrow(tidy_sample_allow_traitMPT)
+allow_delta_t1_test <- sum(tidy_sample_allow_traitMPT$delta_t1_test_prep) / nrow(tidy_sample_allow_traitMPT)
+allow_delta_t3_test <- sum(tidy_sample_allow_traitMPT$delta_t3_test_prep) / nrow(tidy_sample_allow_traitMPT)
+
+
+not_allow_delta_l_test <- sum(tidy_sample_not_allow_traitMPT$delta_l_test_prep) / nrow(tidy_sample_not_allow_traitMPT)
+not_allow_delta_t1_test <- sum(tidy_sample_not_allow_traitMPT$delta_t1_test_prep) / nrow(tidy_sample_not_allow_traitMPT)
+
+
+############# plot the figure (difference distribution)
+
+ 
+tidy_sample_two_btws_condition <- rbind(tidy_sample_allow_traitMPT %>%
+  pivot_longer(c(delta_l, delta_t1, delta_t3), 
+               names_to = "parameter_name",
+               values_to = "parameter_value") %>% 
+   select(parameter_name, parameter_value, bw), tidy_sample_not_allow_traitMPT %>%
+  pivot_longer(c(delta_l, delta_t1), 
+               names_to = "parameter_name",
+               values_to = "parameter_value") %>% 
+   select(parameter_name, parameter_value, bw)) %>%
+  mutate(parameter_name = as.factor(parameter_name))
+
+
+tidy_sample_two_btws_condition$parameter_name <- factor(tidy_sample_two_btws_condition$parameter_name,
+                                                        labels=c('delta_l'= "l", 'delta_t1' = "t1", 'delta_t2'= "t2"))
+
+
+tidy_sample_two_btws_condition %>%
+    ggplot(aes(x = parameter_value)) +
+  stat_halfeye() + theme_set(theme_bw()) +
+   geom_vline(xintercept=0, linetype="dashed", color = "black", size=1) +
+  facet_wrap(bw~parameter_name) + 
+    xlab("Difference in group-level parameter estimates") + 
+  ylab("Density")
+   
+
+
+ggsave("p_study1.pdf")
+
+
+ # p1 <- tidy_sample_allow_traitMPT %>% 
+ #    mutate(delta_l = `mean[1]_le` - `mean[2]_lm`) %>% 
+  # ggplot(aes(x = delta_l)) +
+  # stat_halfeye() + theme_set(theme_bw()) + xlab("l")  + ylab("density") +
+  #  geom_vline(xintercept=0, linetype="dashed", color = "black", size=1) +
+  #  theme(axis.title.y = element_blank(),
+  #       axis.text.y =element_blank(),
+  #       axis.ticks.y = element_blank())
+
+
+# p2 <- tidy_sample_allow_traitMPT %>% 
+#     mutate(delta_t1 = `mean[4]_t1m` - `mean[3]_t1e` ) %>% 
+#   ggplot(aes(x = delta_t1)) +
+#   stat_halfeye() + theme_set(theme_bw()) + xlab("t1")  + 
+#    geom_vline(xintercept=0, linetype="dashed", color = "black", size=1) + 
+#    theme(axis.title.y = element_blank(),
+#         axis.text.y =element_blank(),
+#         axis.ticks.y = element_blank())
+
+
+
+# p3 <- tidy_sample_allow_traitMPT %>% 
+#     mutate(delta_t3 = `mean[6]_t3m` - `mean[5]_t3e`) %>% 
+#   ggplot(aes(x = delta_t3)) +
+#   stat_halfeye() + theme_set(theme_bw()) + xlab("t3")  + 
+#    geom_vline(xintercept=0, linetype="dashed", color = "black", size=1)  + 
+#    theme(axis.title.y = element_blank(),
+#         axis.text.y =element_blank(),
+#         axis.ticks.y = element_blank())
+
+# ggarrange(p1, p2, p3, ncol = 3, nrow = 1)
+    
+    
+    
+```
+
+
+
+
