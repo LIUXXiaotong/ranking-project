@@ -1,0 +1,81 @@
+---
+title: "add_filters"
+author: "Tong"
+date: "7/30/2021"
+output: html_document
+---
+
+```{r R preparation}
+
+library(ggridges)
+library(tidyverse)
+library(data.table)
+library(epiR)
+library(patchwork)
+library(ggplot2)
+
+```
+
+ Two participants stated that they were not serious when answering the survey. Eight participants suggested that they don't speak German in the demographic question
+
+```{r dataset preparation}
+df <- read.csv("clean_pilot.csv") %>% 
+  group_by(ID, labelling) %>% mutate( item_id = cur_group_id() )
+
+
+#  df <- df %>% filter(df$quality != "notserious")
+#  df <- df %>% filter(df$language != "not_german")
+
+df_pos <- df %>% filter(event_comp == "pos") %>% unique()
+df_neg <- df %>% filter(event_comp == "neg") %>% unique()
+
+colnames(df_pos)[colnames(df_pos) == "event_item"] <- "event_item_pos"
+colnames(df_pos)[colnames(df_pos) == "answer"] <- "answer_pos"
+colnames(df_neg)[colnames(df_neg) == "event_item"] <- "event_item_neg"
+colnames(df_neg)[colnames(df_neg) == "answer"] <- "answer_neg"
+
+df_neg <- df_neg %>% select(ID, labelling, item_id, event_item_neg, answer_neg)
+
+
+
+df <- merge(df_pos, df_neg, by = "item_id") %>% select(ID.x, item_id, condition, event_item_pos, answer_pos, 
+                                                       event_item_neg, answer_neg, age: quality)
+
+df <- df %>% 
+  mutate(answer_diff = abs(answer_pos - answer_neg)) %>%  # compute the difference between pos - (100-neg)
+  mutate(count = ifelse (answer_diff >= 100/4, 1, 0)) # if it is greater 100/3
+
+
+
+colnames(df)[colnames(df) == "ID.x"] <- "ID"
+
+
+# 2257(not serious); 2243(25 minutes, not_german participant) 2247(51 minutes, not german participants) 
+
+# 2251(21 minutes, only give 100/0 rating when judging all items), 2294, 2331
+
+
+
+#2257 2275 2311 2331 2340 2360 2449 21 minutes ()
+
+df_exclu <- df %>% group_by(ID) %>%
+  mutate(count_sum = sum(count)) %>% 
+  mutate(exclu = ifelse (count_sum >= 50/4, 1, 0)) %>%  # if it is greater than (50/3)
+  select(ID, count_sum, exclu) %>% 
+  filter(exclu == 1) %>% unique() # we exclude 18 participants 
+
+   # 2245 2247 2251 2257 2294 2298 2320 2331 2422 2444 2449
+
+```
+
+
+```{r}
+data_duration_exclu$ID # 2427(seems okay) 2360(there are some mistakes, but overall seems okay) 
+
+intersect(df_exclu$ID, data_duration_exclu$ID) # 2257 "2275(10 minutes)" 2311 2331 "2340(12 minutes)" "2360(9 minutes) "2449 (10 minutes"
+  
+
+# 2294(a bit weird, 47 minutes); (> 100/3; >= 50/3 (or 17))
+
+```
+
