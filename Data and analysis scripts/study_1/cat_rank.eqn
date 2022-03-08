@@ -1,9 +1,0 @@
-# MPT model for categorizing rankings
-E     EL     le
-E     E1     (1-le)*(1-t3e)*t1e
-E     E2     (1-le)*(1-t3e)*(1-t1e)
-E     E3     (1-le)*t3e
-M     ML     lm
-M     M1     (1-lm)*(1-t3m)*t1m
-M     M2     (1-lm)*(1-t3m)*(1-t1m)
-M     M3     (1-lm)*t3m
