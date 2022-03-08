@@ -1,0 +1,622 @@
+---
+title: "study2_MPT"
+author: "Xiaotong Liu"
+date: "2/23/2022"
+output: html_document
+---
+
+## R preparation
+```{r}
+library(tidyverse)
+library(afex)
+library(emmeans)
+library(runjags)
+library(TreeBUGS)
+library(tidybayes)
+library(ggpubr)
+library(lme4)
+library(broom)
+```
+
+
+## Descriptive analyses 
+```{r}
+df_allow <- read.csv("study2_df.csv") %>% filter(between_subject_condition == "ties_allowed")
+df_not_allow <- read.csv("study2_df.csv") %>% filter(between_subject_condition == "ties_not_allowed")
+
+```
+
+
+## For the condition where ties are allowed:
+
+### Prediction (1) 
+
+Regarding probability of giving logically possible versus all other rankings, \ 
+
+Pr(... | mixed event sets ) > Pr(... | edge event sets) > Pr(... | middle event sets)
+
+
+```{r echo=FALSE}
+
+df_allow$within_subject_condition <- factor(df_allow$within_subject_condition, levels = c("mixed", "edge", "middle"))
+
+df_allow %>% group_by(ID, within_subject_condition) %>%
+  mutate(prob_logical = 1-mean(if_there_are_errors)) %>%
+  select(ID, within_subject_condition, prob_logical) %>% unique() %>%
+  ggplot(aes(x=within_subject_condition, y=prob_logical))  +
+  geom_count(alpha=0.5) +
+  stat_summary(fun.data = "mean_cl_boot", color="red") +
+  ylab("Pr(providing a logically possible ranking)") +
+  xlab("Within subject condition (Type of event sets presented)")
+
+```
+
+*Results (1). I calculated each individual's probability of providing logically possible rankings based on four ranking trials. Grey dots show the number of individuals' at given y-axis. Red dots show overall means with 95% confidence interval.*
+
+
+\newpage
+
+### Prediction (2) 
+
+Regarding conditional probability of giving Type-3 versus Type 1 and Type 2 ranking, \
+
+Pr(... | middle event sets ) > Pr(... | mixed event sets) > Pr(... | edge event sets) \
+
+```{r echo=FALSE}
+
+
+DV2_df_allow <- df_allow %>%
+  select(ID, between_subject_condition, within_subject_condition, error_type, classify_all_ranks) %>%
+  drop_na() %>% 
+   mutate(error_type = ifelse(error_type ==2, 1, 0))
+
+## how many type 3 observations do we have from 151 participants? 
+DV2_df_allow %>% 
+   filter(error_type==1) %>% nrow() # only 34 observations 
+
+
+DV2_df_allow$within_subject_condition <- factor(DV2_df_allow$within_subject_condition, levels = c( "middle", "mixed", "edge"))
+
+
+DV2_df_allow %>% group_by(ID, within_subject_condition) %>%
+  mutate(prob_Type3_error = mean(error_type)) %>%
+  select(ID, within_subject_condition, prob_Type3_error) %>% unique() %>%
+  ggplot(aes(x=within_subject_condition, y=prob_Type3_error))  +
+  geom_count(alpha=0.5) +
+  stat_summary(fun.data = "mean_cl_boot", color="red") +
+  ylab("Pr(Type 3 | illogical)") +
+  xlab("Within subject condition (Type of event sets presented)")
+
+```
+
+*Results (2). I calculated each individual's conditional probability of giving Type-3 versus Type 1 and Type 2 rankings based on four ranking trials. Grey dots show the number of individuals' at given y-axis. Red dots show overall means with 95% confidence interval.*
+
+\newpage
+
+### Prediction (3) 
+
+Regarding conditional probability of giving Type1 versus Type 2 rankings, \
+
+Pr(... | middle event sets ) > Pr(... | mixed event sets) > Pr(... | edge event sets)
+
+
+```{r echo=FALSE}
+DV3_df_allow <- df_allow %>%
+  select(ID, between_subject_condition, within_subject_condition, error_type, classify_all_ranks) %>%
+  drop_na() %>% 
+   filter(error_type != 2)
+
+
+
+DV3_df_allow$within_subject_condition <- factor(DV3_df_allow$within_subject_condition, levels = c("middle", "mixed", "edge"))
+
+
+DV3_df_allow %>% group_by(ID, within_subject_condition) %>%
+  mutate(prob_Type1_error = mean(error_type)) %>%
+  select(ID, within_subject_condition, prob_Type1_error) %>% unique() %>%
+  ggplot(aes(x=within_subject_condition, y=prob_Type1_error))  +
+  geom_count(alpha=0.5) +
+  stat_summary(fun.data = "mean_cl_boot", color="red") +
+  ylab("Pr(Type 1 | illogical & not Type-3)") +
+  xlab("Within subject condition (Type of event sets presented)")
+```
+
+*Results (3). I calculated each individual's conditional probability of giving Type1 versus Type 2 rankings based on four ranking trials. Grey dots show the number of individuals' at given y-axis. Red dots show overall means with 95% confidence interval.*
+
+\newpage
+
+## For the condition where ties are not allowed:
+
+### Prediction (4) 
+
+Regarding probability of giving logically possible versus all other rankings, \
+
+Pr(... | mixed event sets ) > Pr(... | edge event sets) > Pr(... | middle event sets)
+
+
+```{r echo=FALSE}
+df <- read.csv("study2_df.csv")
+df_allow <- df %>% filter(between_subject_condition == "ties_allowed")
+df_not_allow <- df %>% filter(between_subject_condition == "ties_not_allowed")
+
+df_not_allow$within_subject_condition <- factor(df_not_allow$within_subject_condition, levels = c("mixed", "edge", "middle"))
+
+df_not_allow %>% group_by(ID, within_subject_condition) %>%
+  mutate(prob_logical = 1-mean(if_there_are_errors)) %>%
+  select(ID, within_subject_condition, prob_logical) %>% unique() %>%
+  ggplot(aes(x=within_subject_condition, y=prob_logical))  +
+  geom_count(alpha=0.5) +
+  stat_summary(fun.data = "mean_cl_boot", color="red") + 
+  ylab("Pr(providing a logically possible ranking)") +
+  xlab("Within subject condition (Type of event sets presented)")
+
+```
+
+*Results (4). I calculated each individual's probability of providing logically possible rankings based on four ranking trials. Grey dots show the number of individuals' at given y-axis. Red dots show overall means with 95% confidence interval.*
+
+
+\newpage
+
+### Prediction (5) 
+
+Regarding conditional probability of giving Type1 versus Type 2 rankings, \
+
+Pr(... | middle event sets ) > Pr(... | mixed event sets) > Pr(... | edge event sets)
+
+```{r echo=FALSE}
+###### 
+
+DV2_df_not_allow <- df_not_allow %>%
+  select(ID, between_subject_condition, within_subject_condition, error_type, classify_all_ranks) %>%
+  drop_na() 
+
+DV2_df_not_allow$within_subject_condition <- factor(DV2_df_not_allow$within_subject_condition, levels = c("middle", "mixed", "edge"))
+
+
+DV2_df_not_allow %>% group_by(ID, within_subject_condition) %>%
+  mutate(prob_Type1_error = mean(error_type)) %>%
+  select(ID, within_subject_condition, prob_Type1_error) %>% unique() %>%
+  ggplot(aes(x=within_subject_condition, y=prob_Type1_error))  +
+  geom_count(alpha=0.5) +
+  stat_summary(fun.data = "mean_cl_boot", color="red") + 
+  ylab("Pr(Type 1 | illogical)") +
+  xlab("Within subject condition (Type of event sets presented)")
+```
+
+*Results (5). I calculated each individual's conditional probability of giving Type1 versus Type 2 rankings based on four ranking trials. Grey dots show the number of individuals' at given y-axis. Red dots show overall means with 95% confidence interval.*
+
+
+
+## Model-based analyses
+
+First step: prepare data sets
+
+We prepared two date sets, one for the group of participants that were allowed to give ties in the rankings, and one for the group of participants that were not allowed to give ties in the rankings.
+
+To use MPT models to analyse data, we need to prepare data with individual frequencies. In the data table, each row is one person and each column is one category. Each cell is the frequency of giving one category of responses by one person.
+
+```{r}
+
+## For the condition where ties are allowed 
+
+if (file.exists("allow_indi.csv")) {
+ allow_indi <- read.csv("allow_indi.csv")
+} else {
+   
+   df <- read.csv("study2_df.csv")
+   
+   middle_allow_indi <- df %>%
+      filter(between_subject_condition == "ties_allowed",
+         within_subject_condition == "middle") %>% 
+      pivot_wider(names_from = classify_all_ranks, values_from = f00) %>% 
+      group_by(ID) %>% 
+      select(ID, between_subject_condition, within_subject_condition,
+         logical, type_1, type_2, type_3) %>%
+      mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+          type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>%
+      group_by(ID) %>%
+      summarise(IL = sum(logical),
+             I1 = sum(type_1),
+             I2 = sum(type_2),
+             I3 = sum(type_3))
+   
+   edge_allow_indi <- df %>%
+       filter(between_subject_condition == "ties_allowed",
+          within_subject_condition == "edge") %>%
+      pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+      group_by(ID) %>%
+      select(ID, between_subject_condition,  within_subject_condition,
+          logical, type_1, type_2, type_3) %>% 
+      mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+          type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>%
+      group_by(ID) %>%
+      summarise(EL = sum(logical),
+             E1 = sum(type_1),
+             E2 = sum(type_2),
+             E3 = sum(type_3))
+   
+    mixed_allow_indi <- df %>% 
+       filter(between_subject_condition == "ties_allowed",
+          within_subject_condition == "mixed") %>% 
+       pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+       group_by(ID) %>%
+       select(ID, between_subject_condition,  within_subject_condition,
+          logical, type_1, type_2, type_3) %>%
+       mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1),
+          type_3 = ifelse(is.na(type_3) == TRUE, 0, 1)) %>%
+       group_by(ID) %>%
+       summarise(ML = sum(logical),
+             M1 = sum(type_1),
+             M2 = sum(type_2),
+             M3 = sum(type_3))
+    
+    
+      allow_indi <- cbind(middle_allow_indi %>% select(-ID), edge_allow_indi %>% select(-ID),  mixed_allow_indi%>% select(-ID)) 
+       write.csv(allow_indi, "allow_indi.csv", row.names = FALSE)
+}
+
+
+
+## For the condition where ties are not allowed 
+
+if (file.exists("not_allow_indi.csv")) {
+ not_allow_indi <- read.csv("not_allow_indi.csv")
+} else { 
+  
+  df <- read.csv("study2_df.csv")
+  
+ middle_not_allow_indi <- df %>%
+  filter(between_subject_condition == "ties_not_allowed",
+         within_subject_condition == "middle") %>% 
+  pivot_wider(names_from = classify_all_ranks, values_from = f00) %>% 
+  group_by(ID) %>% 
+  select(ID, between_subject_condition, within_subject_condition,
+         logical, type_1, type_2) %>%
+   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>%
+   group_by(ID) %>%
+   summarise(IL = sum(logical),
+             I1 = sum(type_1),
+             I2 = sum(type_2))
+
+ edge_not_allow_indi <- df %>%
+   filter(between_subject_condition == "ties_not_allowed",
+          within_subject_condition == "edge") %>%
+   pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+   group_by(ID) %>%
+   select(ID, between_subject_condition,  within_subject_condition,
+          logical, type_1, type_2) %>%
+   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>%
+   group_by(ID) %>%
+   summarise(EL = sum(logical),
+             E1 = sum(type_1),
+             E2 = sum(type_2))
+ 
+ mixed_not_allow_indi <- df %>% 
+   filter(between_subject_condition == "ties_not_allowed",
+          within_subject_condition == "mixed") %>% 
+   pivot_wider(names_from = classify_all_ranks, values_from = f00) %>%
+   group_by(ID) %>%
+   select(ID, between_subject_condition,  within_subject_condition,
+          logical, type_1, type_2) %>%
+   mutate(logical = ifelse(is.na(logical) == TRUE, 0, 1),
+          type_1 = ifelse(is.na(type_1) == TRUE, 0, 1),
+          type_2 = ifelse(is.na(type_2) == TRUE, 0, 1)) %>%
+   group_by(ID) %>%
+   summarise(ML = sum(logical),
+             M1 = sum(type_1),
+             M2 = sum(type_2))
+ 
+ 
+
+  not_allow_indi <- cbind(middle_not_allow_indi %>% select(-ID), edge_not_allow_indi %>% select(-ID),  mixed_not_allow_indi%>% select(-ID)) 
+  write.csv(not_allow_indi, "not_allow_indi.csv", row.names = FALSE)
+   
+   }
+
+ 
+
+```
+
+
+We then do analyses for the condition where ties are allowed.
+```{r}
+
+### test for heterogeneity among participants
+testHetChi(freq = allow_indi,
+            tree = c("E","E","E","E","Mix","Mix","Mix","Mix", "Mid","Mid","Mid","Mid")) 
+
+if(file.exists("fit_allow_ties_traitMPT.rda")){
+   load("fit_allow_ties_traitMPT.rda")
+} else {
+   allow_ties_traitMPT <- traitMPT(eqnfile="allow_rank.eqn",
+         data="allow_indi.csv",
+         transformedParameters =list("deltal1=lm-le", "deltal2=le-li",  "deltal3=lm-li",
+                                     "deltat31 =t3i-t3m", "deltat32 =t3m-t3e", "deltat33 =t3i-t3e",
+                                     "deltat11 =t1i-t1m", "deltat12 =t1m-t1e", "deltat13 =t1i-t1e"),
+         parEstFile = "results_fit_allow_ties_traitMPT.txt",
+         n.iter = 320000,
+         n.adapt = 100000,
+         n.burnin = 20000,
+         n.thin = 300,
+         n.chains = 4)
+   
+   save(allow_ties_traitMPT, file = "fit_allow_ties_traitMPT.rda")
+}
+
+
+
+summary(allow_ties_traitMPT)
+
+
+###### check convergence and model fit
+
+###### check convergence graphically by using time series plots for the mean, SD and correlation parameters
+plot(allow_ties_traitMPT, parameter = "mean")
+plot(allow_ties_traitMPT, parameter = "sigma")
+plot(allow_ties_traitMPT, parameter = "rho")
+
+## model fit statistics, PPP(posterior predictive p-values)
+ppps = PPP(allow_ties_traitMPT)
+ppps
+
+plotFit(allow_ties_traitMPT)               # observed vs. predicted mean frequencies
+plotFit(allow_ties_traitMPT, stat = "cov")
+
+```
+
+
+
+
+```{r include=FALSE}
+
+## prepare the data in tabular form
+mysample_allow_traitMPT <- getSamples(allow_ties_traitMPT, "mean")
+allow_traitMPT_tibble <- tidy_draws(mysample_allow_traitMPT)
+
+head(allow_traitMPT_tibble)
+
+colnames(allow_traitMPT_tibble) <- c(".chain", ".iteration", ".draw", "le", "li", "lm",
+                                     "t1e", "t1i", "t1m", "t3e", "t3i", "t3m")
+
+#summary stat: what % of probability mass are on the right side of 0 (above 0)
+
+allow_traitMPT_tibble  <- allow_traitMPT_tibble %>% 
+    mutate(deltal1=lm-le, deltal2=le-li, deltal3=lm-li, deltat31 =t3i-t3m,
+           deltat32 =t3m-t3e, deltat33 =t3i-t3e, deltat11 =t1i-t1m, 
+           deltat12 =t1m-t1e, deltat13 =t1i-t1e) %>% 
+   mutate(deltal1_test = ifelse(deltal1>0, 1, 0),
+           deltal2_test= ifelse(deltal2>0, 1, 0),
+          deltal3_test = ifelse(deltal3>0, 1, 0),
+          deltat31_test= ifelse(deltat31>0, 1, 0),
+          deltat32_test= ifelse(deltat32>0, 1, 0),
+          deltat33_test= ifelse(deltat33>0, 1, 0),
+          deltat11_test= ifelse(deltat11>0, 1, 0),
+          deltat12_test= ifelse(deltat12>0, 1, 0),
+          deltat13_test= ifelse(deltat13>0, 1, 0))
+
+
+allow_traitMPT_tibble %>% 
+   summarise(
+   deltal1_test_results = sum(deltal1_test) / length(deltal1_test),
+   deltal2_test_results = sum(deltal2_test) / length(deltal2_test),
+   deltal3_test_results = sum(deltal3_test) / length(deltal3_test),
+   deltat31_test = sum(deltat31_test) / length(deltat31_test),
+   deltat32_test = sum(deltat32_test) / length(deltat32_test),
+   deltat33_test = sum(deltat33_test) / length(deltat33_test),
+   deltat11_test = sum(deltat11_test) / length(deltat11_test),
+   deltat12_test = sum(deltat12_test) / length(deltat12_test),
+   deltat13_test = sum(deltat13_test) / length(deltat13_test)
+)
+
+
+## draw difference distribution
+
+
+allow_traitMPT_tibble_plot <- allow_traitMPT_tibble %>%
+   select(13: 21)
+
+allow_traitMPT_tibble_plot <- allow_traitMPT_tibble_plot %>%
+  pivot_longer(1:9, names_to = "comparison", values_to = "value") %>% 
+  mutate(parameter_name = ifelse(str_detect(comparison, "deltal"), "Parameter l", 
+                                 ifelse(str_detect(comparison, "deltat1"), "Parameter t1", "Parameter t3"))) %>% 
+  mutate(comparison = ifelse(comparison == "deltal1", "mixed-edge",
+                             ifelse(comparison == "deltal2" , "edge-middle",
+                                    ifelse(comparison == "deltal3", "mixed-middle",
+                                           ifelse(comparison == "deltat11" | comparison == "deltat31", "middle-mixed",
+                                                  ifelse(comparison == "deltat12" | comparison == "deltat32", "mixed-edge", "middle-edge"))))))
+
+
+
+allow_traitMPT_tibble_plot %>%
+  ggplot(aes(x = value)) +
+  stat_halfeye() + theme_set(theme_bw()) +
+  facet_wrap(parameter_name ~ comparison) +
+   geom_vline(xintercept=0, linetype="dashed", color = "black", size=1)
+
+
+ggsave("diff_distribution_ties_allowed.pdf")
+```
+
+
+
+
+
+
+
+We continue to run MPT for the condition where ties are not allowed.
+
+
+
+
+```{r}
+load("fit_traitMPT_no_ties.rda")
+
+
+mysample_traitMPT_no_ties <- getSamples(traitMPT_no_ties, "mean")
+tt_traitMPT_no_ties <- tidy_draws(mysample_traitMPT_no_ties)
+
+
+colnames(tt_traitMPT_no_ties)<- c(".chain",".iteration",".draw", "le",
+                               "li", "lm", "t1e", "t1i", "t1m")
+
+
+tt_traitMPT_no_ties <- tt_traitMPT_no_ties %>% 
+  mutate(deltal1 = lm-le,
+         deltal2 = le-li,
+         deltal3 = lm-li,
+         deltat11 =t1i-t1m,
+         deltat12 =t1m-t1e,
+         deltat13 =t1i-t1e)
+
+
+tt_traitMPT_no_ties$deltal1 <- sapply(tt_traitMPT_no_ties$deltal1 ,  myfun)
+tt_traitMPT_no_ties$deltal2 <- sapply(tt_traitMPT_no_ties$deltal2 ,  myfun)
+tt_traitMPT_no_ties$deltal3 <- sapply(tt_traitMPT_no_ties$deltal3 ,  myfun)
+
+sum(tt_traitMPT_no_ties$deltal1 )/nrow(tt_ties_traitMPT)
+sum(tt_traitMPT_no_ties$deltal2)/nrow(tt_ties_traitMPT)
+sum(tt_traitMPT_no_ties$deltal3)/nrow(tt_ties_traitMPT)
+
+tt_traitMPT_no_ties$deltat11 <- sapply(tt_traitMPT_no_ties$deltat11 ,  myfun)
+tt_traitMPT_no_ties$deltat12 <- sapply(tt_traitMPT_no_ties$deltat12 ,  myfun)
+tt_traitMPT_no_ties$deltat13 <- sapply(tt_traitMPT_no_ties$deltat13 ,  myfun)
+
+sum(tt_traitMPT_no_ties$deltat13)/nrow(tt_traitMPT_no_ties)
+sum(tt_traitMPT_no_ties$deltat12)/nrow(tt_traitMPT_no_ties)
+sum(tt_traitMPT_no_ties$deltat11)/nrow(tt_traitMPT_no_ties)
+
+
+```
+
+
+
+We continue to do analyses for the condition where ties are not allowed.
+
+
+
+```{r}
+testHetChi(freq = not_allow_indi,
+            tree = c("E","E","E","Mix","Mix","Mix", "Mid","Mid","Mid")) 
+
+
+if(file.exists("fit_no_ties_traitMPT.rda")){
+   load("fit_no_ties_traitMPT.rda")
+} else {
+   no_ties_traitMPT <- traitMPT(eqnfile="not_allow_rank.eqn",
+         data="not_allow_indi.csv",
+         transformedParameters =list("deltal1=lm-le", "deltal2=le-li",  "deltal3=lm-li",
+                                     "deltat11 =t1i-t1m", "deltat12 =t1m-t1e", "deltat13 =t1i-t1e"),
+         parEstFile = "results_fit_traitMPT_no_ties.txt",
+         n.iter = 320000,
+         n.adapt = 100000,
+         n.burnin = 20000,
+         n.thin = 300,
+         n.chains = 4)
+
+save(traitMPT_no_ties, file = "fit_traitMPT_no_ties.rda")
+}
+
+
+
+
+summary(no_ties_traitMPT)
+
+
+###### check convergence and model fit
+###### check convergence graphically by using time series plots for the mean, SD and correlation parameters
+plot(no_ties_traitMPT, parameter = "mean")
+plot(no_ties_traitMPT, parameter = "sigma")
+plot(no_ties_traitMPT, parameter = "rho")
+
+## model fit statistics, PPP(posterior predictive p-values)
+ppps = PPP(no_ties_traitMPT)
+ppps
+
+plotFit(no_ties_traitMPT)               # observed vs. predicted mean frequencies
+plotFit(no_ties_traitMPT, stat = "cov")
+
+```
+
+
+
+
+
+```{r include=FALSE}
+
+### preapre the data into tabular form
+mysample_not_allow_traitMPT <- getSamples(no_ties_traitMPT, "mean")
+not_allow_traitMPT_tibble <- tidy_draws(mysample_not_allow_traitMPT)
+
+head(not_allow_traitMPT_tibble)
+
+colnames(not_allow_traitMPT_tibble) <- c(".chain", ".iteration", ".draw", "le", "li", "lm",
+                                     "t1e", "t1i", "t1m")
+### asses the parameter l
+not_allow_traitMPT_tibble  <- not_allow_traitMPT_tibble %>% 
+    mutate(deltal1=lm-le, deltal2=le-li, deltal3=lm-li, deltat11 =t1i-t1m, 
+           deltat12 =t1m-t1e, deltat13 =t1i-t1e) %>% 
+   mutate(deltal1_test = ifelse(deltal1>0, 1, 0),
+           deltal2_test= ifelse(deltal2>0, 1, 0),
+          deltal3_test = ifelse(deltal3>0, 1, 0),
+          deltat11_test= ifelse(deltat11>0, 1, 0),
+          deltat12_test= ifelse(deltat12>0, 1, 0),
+          deltat13_test= ifelse(deltat13>0, 1, 0))
+
+#stat: what % of probability mass are on the right side of 0 (above 0)
+
+not_allow_traitMPT_tibble %>% 
+   summarise(
+   deltal1_test_results = sum(deltal1_test) / length(deltal1_test),
+   deltal2_test_results = sum(deltal2_test) / length(deltal2_test),
+   deltal3_test_results = sum(deltal3_test) / length(deltal3_test),
+   deltat11_test = sum(deltat11_test) / length(deltat11_test),
+   deltat12_test = sum(deltat12_test) / length(deltat12_test),
+   deltat13_test = sum(deltat13_test) / length(deltat13_test)
+)
+```
+
+
+```{r echo=FALSE}
+### visualise the results
+
+not_allow_traitMPT_tibble_plot <- not_allow_traitMPT_tibble %>%
+   select(deltal1, deltal2, deltal3, deltat11, deltat12, deltat13)
+
+
+
+not_allow_traitMPT_tibble_plot <- not_allow_traitMPT_tibble_plot %>%
+  pivot_longer(1:6,
+               names_to = "comparison",
+               values_to = "value") %>%
+  mutate(parameter_name = ifelse(str_detect(comparison, "deltal"), "Parameter l", "Parameter t1")) %>%
+  mutate(comparison = ifelse(comparison == "deltal1", "mixed-edge",
+                             ifelse(comparison == "deltal2", "edge-middle",
+                                    ifelse(comparison == "deltal3", "mixed-middle",
+                                           ifelse(comparison == "deltat11", "middle-mixed",
+                                                  ifelse(comparison == "deltat12", "mixed-edge", "middle-edge"))))))
+
+not_allow_traitMPT_tibble_plot %>%
+  ggplot(aes(x = value)) +
+  stat_halfeye() + theme_set(theme_bw()) +
+  facet_wrap(parameter_name ~ comparison) +
+   geom_vline(xintercept=0, linetype="dashed", color = "black", size=1)
+  
+
+ggsave("diff_distribution_ties_not_allowed.pdf")
+
+```
+
+
+
+
+
