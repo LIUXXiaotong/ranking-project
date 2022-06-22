@@ -1,0 +1,194 @@
+---
+title: "plot1"
+author: "Xiaotong Liu"
+date: "1/13/2022"
+output: html_document
+---
+
+```{r}
+#install.packages("viridis")
+library(tidyverse)
+library(viridis)
+library(ggplot2)
+library(gridExtra)
+library(cowplot)
+library(purrr)
+
+
+theme_set(theme_bw() + 
+            theme(panel.grid.major.x = element_blank(), 
+                  panel.grid.minor.x = element_blank()))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+
+
+```
+
+
+```{r}
+################################################# 
+############# when ties are allowed ############# 
+################################################# 
+
+############ step 1: draw the geom_area plot
+#### dataset preparation
+edge_events <- read.csv("linear_edge_0.csv")
+edge_events_with_d <- read.csv("linear_edge_03.csv")
+middle_events <- read.csv("linear_middle_0.csv")
+middle_events_with_d <- read.csv("linear_middle_03.csv")
+mixed_events <- read.csv("linear_mixed_0.csv")
+mixed_events_with_d <- read.csv("linear_mixed_03.csv")
+
+
+df1 <- rbind(edge_events, edge_events_with_d, middle_events, middle_events_with_d,  mixed_events,  mixed_events_with_d)  %>% 
+  pivot_longer(cols = c(mean_correct, mean_type1, mean_type2, mean_type3),
+               names_to = "Error type",
+              values_to = "value")
+
+
+df1$`Error type`[df1$`Error type` == "mean_type1"] <- "Stacked"
+df1$`Error type`[df1$`Error type` == "mean_type2"] <- "Interlaced"
+df1$`Error type`[df1$`Error type` == "mean_type3"] <- "Other"
+df1$`Error type`[df1$`Error type` == "mean_correct"] <- "Logical(no errors)"
+df1$`Error type` <- factor(df1$`Error type`, levels = c("Logical(no errors)", "Stacked", "Interlaced", "Other"))
+##### plot
+(p1 <- ggplot(df1, aes(x=sample_size, y=value, fill=`Error type`)) +
+    geom_area(alpha=0.5 , size=.5, colour="black") + 
+  facet_grid(noise_term ~ event_types, labeller = label_bquote(row = italic("d")~"="~.(noise_term))) +
+  xlab(expression(paste("Sample size ", italic(N)))) +
+  ylab(expression(paste("Predicted probability")))  + 
+  theme(legend.position = "bottom",
+        legend.key.size = unit(1, 'cm'),
+        text = element_text(size = 11)) +
+  ggtitle("When ties are allowed") +  scale_fill_manual(values=c( "#009E73", "#F0E442", "#CC79A7", "#0072B2")))
+
+ggsave("Tiesallowed_area.png")
+
+
+
+
+
+
+############ step 2: draw the geom_line plot (decomposing the multinomial distribution)
+df1 <- rbind(edge_events, edge_events_with_d, middle_events, middle_events_with_d,  
+             mixed_events,  mixed_events_with_d) %>% 
+  mutate(con_type3 = mean_type3 / (1 - mean_correct),
+         con_type1 = mean_type1 / (1- mean_type3 - mean_correct)) %>% 
+  pivot_longer(cols = c(mean_correct, con_type1, con_type3),
+               names_to = "con_error_type",
+               values_to = "error_value") %>%
+  mutate(condition = "Ties allowed") %>%
+  select(sample_size, noise_term, event_types, con_error_type, error_value, condition)
+
+
+df1$con_error_type[df1$con_error_type == "con_type1"] <- "Stacked"
+df1$con_error_type[df1$con_error_type == "con_type2"] <- "Interlaced"
+df1$con_error_type[df1$con_error_type == "con_type3"] <- "Other"
+df1$con_error_type[df1$con_error_type == "mean_correct"] <- "Logical(no errors)"
+df1$con_error_type <- factor(df1$con_error_type, levels = c("Logical(no errors)", "Stacked", "Interlaced", "Other"))
+
+( p1 <- ggplot(df1, aes(sample_size, error_value)) +
+  geom_line(aes(linetype =  event_types))  +
+  scale_y_continuous(breaks = seq(0, 1, 0.5)) +
+  scale_linetype_manual(values=c("solid", "dotted", "dotdash")) +
+  labs(linetype = "Event set type") +
+  xlab(expression(paste("Sample size ", italic(N)))) +
+  ylab(expression(paste("Predicted (conditional) probability"))) +
+   facet_grid(noise_term ~ con_error_type, labeller = label_bquote(row = italic("d")~"="~.(noise_term))) + 
+  theme(legend.position = "bottom",
+        legend.key.size = unit(1, 'cm'),
+        text = element_text(size = 11)) +
+  ggtitle("When ties are allowed"))
+
+ggsave("Tiesallowed_line.png")
+
+
+
+```
+
+
+
+```{r}
+
+####################################################
+############# when ties are not allowed ############# 
+####################################################  
+
+############ step 1: draw the geom_area plot
+
+linear_edge_events <- read.csv("linear_edge_events.csv")
+linear_edge_events_with_d <- read.csv("linear_edge_events_with_d.csv")
+linear_middle_events <- read.csv("linear_middle_events.csv")
+linear_middle_events_with_d <- read.csv("linear_middle_events_with_d.csv")
+linear_mixed_events <- read.csv("linear_mixed_events.csv")
+linear_mixed_events_with_d <- read.csv("linear_mixed_events_with_d.csv")
+
+df2 <- rbind(linear_edge_events, linear_edge_events_with_d, linear_middle_events, linear_middle_events_with_d, linear_mixed_events,  linear_mixed_events_with_d) %>% 
+  pivot_longer(cols = c(mean_correct, mean_type1, mean_type2),
+               names_to = "Error type",
+              values_to = "value")
+
+df2$`Error type`[df2$`Error type` == "mean_type1"] <- "Stacked"
+df2$`Error type`[df2$`Error type` == "mean_type2"] <- "Interlaced"
+df2$`Error type`[df2$`Error type` == "mean_correct"] <- "Logical(no errors)"
+df2$`Error type` <- factor(df2$`Error type`, levels = c("Logical(no errors)", "Stacked", "Interlaced"))
+
+(p2 <- ggplot(df2, aes(x=sample_size, y=value, fill=`Error type`)) +
+    geom_area(alpha=0.5 , size=.5, colour="black") + 
+  facet_grid(noise_term ~ event_types, labeller = label_bquote(row = italic("d")~"="~.(noise_term))) +
+  xlab(expression(paste("Sample size ", italic(N)))) +
+  ylab(expression(paste("Predicted probability")))  + 
+  theme(legend.position = "bottom",
+        legend.key.size = unit(1, 'cm'),
+        text = element_text(size = 11)) +
+  ggtitle("When ties are not allowed") + scale_fill_manual(values=c( "#009E73", "#F0E442", "#CC79A7", "#0072B2")) )
+
+ggsave("Tiesnotallowed_area.png")
+
+############ step 1: draw the geom_line plot
+
+df2 <- rbind(linear_edge_events, linear_edge_events_with_d, linear_middle_events, linear_middle_events_with_d, linear_mixed_events,  linear_mixed_events_with_d) %>% 
+  mutate(con_type1 = mean_type1 / (1- mean_correct)) %>% 
+  pivot_longer(cols = c(mean_correct, con_type1),
+               names_to = "con_error_type",
+               values_to = "error_value") %>%
+  mutate(condition = "Ties allowed") %>%
+  select(sample_size, noise_term, event_types, con_error_type, error_value, condition)
+
+
+df2$con_error_type[df2$con_error_type == "con_type1"] <- "Stacked"
+df2$con_error_type[df2$con_error_type == "con_type2"] <- "Interlaced"
+df2$con_error_type[df2$con_error_type == "con_type3"] <- "Other"
+df2$con_error_type[df2$con_error_type == "mean_correct"] <- "Logical(no errors)"
+
+levels(df2$noise_term) <- c("0" = "0",
+                            "0.3" = "0.3")
+ (p2 <- ggplot(df2, aes(sample_size, error_value)) +
+  geom_line(aes(linetype =  event_types))  +
+  scale_y_continuous(breaks = seq(0, 1, 0.5)) +
+  scale_linetype_manual(values=c("solid", "dotted", "dotdash")) +
+  labs(linetype = "Event set type") +
+  xlab(expression(paste("Sample size ", italic(N)))) +
+  ylab(expression(paste("Predicted (conditional) probability"))) +
+   facet_grid(noise_term ~ con_error_type, labeller = label_bquote(row = italic("d")~"="~.(noise_term))) + 
+  theme(legend.position = "right",
+        text = element_text(size = 11)) +
+  ggtitle("When ties are not allowed") )
+
+ggsave("Tiesnotallowed_line.png")
+```
+
+
+
+
+
+
+
+
